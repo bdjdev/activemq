@@ -155,10 +155,11 @@ public class JmsQueueTransactionTest extends JmsTransactionTestSupport {
 
         // lets consume any outstanding messages from previous test runs
         beginTx();
-        while (consumer.receive(1000) != null) {
+        while (consumer.receive(250) != null) {
         }
         commitTx();
 
+        // send the outbound messages
         beginTx();
         producer.send(outbound[0]);
         producer.send(outbound[1]);
@@ -167,7 +168,7 @@ public class JmsQueueTransactionTest extends JmsTransactionTestSupport {
 
         // Get the first.
         beginTx();
-        assertEquals(outbound[0], consumer.receive(1000));
+        assertEquals(outbound[0], consumer.receive(250));
         consumer.close();
         commitTx();
         
@@ -198,9 +199,9 @@ public class JmsQueueTransactionTest extends JmsTransactionTestSupport {
         // Re-open the consumer.
         consumer = resourceProvider.createConsumer(session, destination);
         // Receive the second.
-        assertEquals(outbound[1], consumer.receive(1000));
+        assertEquals(outbound[1], consumer.receive(250));
         // Receive the third.
-        assertEquals(outbound[2], consumer.receive(1000));
+        assertEquals(outbound[2], consumer.receive(250));
         consumer.close();
 
         commitTx();

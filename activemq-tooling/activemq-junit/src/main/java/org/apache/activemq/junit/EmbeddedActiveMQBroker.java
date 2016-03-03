@@ -16,8 +16,6 @@
  */
 package org.apache.activemq.junit;
 
-import java.net.URI;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerFactory;
 import org.apache.activemq.broker.BrokerPlugin;
@@ -29,9 +27,14 @@ import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
 import org.apache.activemq.plugin.StatisticsBrokerPlugin;
 import org.apache.activemq.pool.PooledConnectionFactory;
+import org.junit.Rule;
 import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.net.URI;
 
 /**
  * A JUnit Rule that embeds an ActiveMQ broker into a test.
@@ -40,6 +43,9 @@ public class EmbeddedActiveMQBroker extends ExternalResource {
     Logger log = LoggerFactory.getLogger(this.getClass());
 
     BrokerService brokerService;
+
+    @Rule
+    protected TemporaryFolder dataDirectory = defaultDataDirectoryFile();
 
     /**
      * Create an embedded ActiveMQ broker using defaults
@@ -59,9 +65,25 @@ public class EmbeddedActiveMQBroker extends ExternalResource {
     }
 
     /**
+     * Sets a default dataDirectoryFile for this embedded brokerService.  tmpfs will be used, if available.
+     * @return {@code TemporaryFolder} - the default dataDirectory
+     */
+    protected TemporaryFolder defaultDataDirectoryFile() {
+        final TemporaryFolder dataDir;
+        final File tmpfs = new File("/dev/shm");
+        if (tmpfs.exists() && tmpfs.canRead() && tmpfs.canWrite()) {
+            dataDir = new TemporaryFolder(tmpfs);
+        } else {
+            dataDir = new TemporaryFolder();
+        }
+
+        return dataDir;
+    }
+
+    /**
      * Create an embedded ActiveMQ broker using a configuration URI
      */
-    public EmbeddedActiveMQBroker(String configurationURI ) {
+    public EmbeddedActiveMQBroker(String configurationURI) {
         try {
             brokerService = BrokerFactory.createBroker(configurationURI);
         } catch (Exception ex) {
@@ -97,6 +119,9 @@ public class EmbeddedActiveMQBroker extends ExternalResource {
     public void start() {
         try {
             this.configure();
+            if (brokerService.getDataDirectoryFile() == null) {
+                brokerService.setDataDirectoryFile(dataDirectory.newFolder());
+            }
             brokerService.start();
         } catch (Exception ex) {
             throw new RuntimeException("Exception encountered starting embedded ActiveMQ broker: {}" + this.getBrokerName(), ex);
